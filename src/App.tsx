@@ -269,8 +269,9 @@ function App() {
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
 
-      const baseUrl = 'https://api.openai.com/v1/realtime'
-      const model = 'gpt-4o-realtime-preview-2024-12-17'
+      // Use Azure OpenAI realtime endpoint
+      const baseUrl = 'https://eastus2.realtimeapi-preview.ai.azure.com/v1/realtimertc'
+      const model = 'gpt-4o-realtime-preview'
       const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
         method: 'POST',
         body: offer.sdp,
@@ -290,7 +291,7 @@ function App() {
       setIsActivatingSession(false)
     } catch (error) {
       console.error('Failed to start realtime session:', error)
-      toast.error('リアルタイムセッションの開始に失敗しました')
+      toast.error(`リアルタイムセッションの開始に失敗しました: ${error.message}`)
       setIsActivatingSession(false)
     }
   }
