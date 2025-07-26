@@ -585,13 +585,6 @@ function App() {
                 </Button>
               )}
               
-              <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                isSessionActive 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-accent text-accent-foreground'
-              }`}>
-                {isSessionActive ? 'リアルタイム接続中' : '音声入力対応'}
-              </div>
               {isMobile && (
                 <Sheet open={isExplanationOpen} onOpenChange={setIsExplanationOpen}>
                   <SheetTrigger asChild>
