@@ -21,6 +21,9 @@ const chatApiKey = process.env.AZURE_OPENAI_CHAT_API_KEY;
 const chatEndpoint = process.env.AZURE_OPENAI_CHAT_ENDPOINT;
 const chatDeploymentName = process.env.AZURE_OPENAI_CHAT_DEPLOYMENT_NAME;
 const chatApiVersion = process.env.AZURE_OPENAI_CHAT_API_VERSION;
+const chatSystemPrompt = process.env.AZURE_OPENAI_CHAT_SYSTEM_PROMPT
+const chatTransOnOff = process.env.AZURE_OPENAI_CHAT_TRANSLATION_ON_OFF
+const chatTransSystemPrompt = process.env.AZURE_OPENAI_CHAT_TRANSLATION_SYSTEM_PROMPT
 
 // Explanation API用の環境変数
 const explanationApiKey = process.env.AZURE_OPENAI_EXPLANATION_API_KEY;
@@ -72,7 +75,19 @@ app.get('/api/token', async (req, res) => {
 // API route for chat completion
 app.post('/api/chat', async (req, res) => {
   try {
-    const { messages, parseJSON = false } = req.body;
+    const { userMessage } = req.body;
+    
+    // Server-side prompt for chat conversation
+    const messages = [
+      {
+        role: 'system',
+        content: chatSystemPrompt
+      },
+      {
+        role: 'user',
+        content: userMessage
+      }
+    ];
     
     const response = await fetch(`${chatEndpoint}/openai/deployments/${chatDeploymentName}/chat/completions?api-version=${chatApiVersion}`, {
       method: 'POST',
@@ -82,8 +97,7 @@ app.post('/api/chat', async (req, res) => {
       },
       body: JSON.stringify({
         messages,
-        temperature: 0.7,
-        ...(parseJSON && { response_format: { type: 'json_object' } })
+        temperature: 0.7
       }),
     });
 
@@ -92,9 +106,45 @@ app.post('/api/chat', async (req, res) => {
     if (!response.ok) {
       throw new Error(data.error?.message || 'API call failed');
     }
+
+    let return_message = data.choices[0].message.content;
     
+    if (chatTransOnOff === 'on') {
+      // If translation is enabled, translate the response to Japanese
+      const messages_jp = [
+        {
+          role: 'system',
+          content: chatTransSystemPrompt
+        },
+        {
+          role: 'user',
+          content: data.choices[0].message.content
+        }
+      ];
+
+      const response_jp = await fetch(`${chatEndpoint}/openai/deployments/${chatDeploymentName}/chat/completions?api-version=${chatApiVersion}`, {
+        method: 'POST',
+        headers: {
+          'api-key': chatApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: messages_jp,
+          temperature: 0.7
+        }),
+      });
+
+      const data_jp = await response_jp.json();
+      
+      if (!response_jp.ok) {
+        throw new Error(data_jp.error?.message || 'Translation API call failed');
+      }
+      
+      return_message += `\n--\n${data_jp.choices[0].message.content}`;
+    }
+    console.log('Final return message:', return_message);
     res.json({
-      content: data.choices[0].message.content
+      content: return_message
     });
   } catch (error) {
     console.error('Chat completion error:', error);
@@ -106,7 +156,7 @@ app.post('/api/chat', async (req, res) => {
 app.post('/api/explanation', async (req, res) => {
   try {
     const { userText, aiText } = req.body;
-    console.log('system prompt:', explanationSystemPrompt);
+    
     const messages = [
       {
         role: 'system',

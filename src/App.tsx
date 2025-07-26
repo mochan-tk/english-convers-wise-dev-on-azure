@@ -211,20 +211,19 @@ function App() {
     }
   }
 
-  const callOpenAI = async (messages: any[], parseJSON = false) => {
+  const callChatAPI = async (userMessage: string) => {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        messages,
-        parseJSON
+        userMessage
       }),
     })
 
     if (!response.ok) {
-      throw new Error('OpenAI API call failed')
+      throw new Error('Chat API call failed')
     }
 
     const data = await response.json()
@@ -418,16 +417,7 @@ function App() {
     setIsLoading(true)
 
     try {
-      const aiResponse = await callOpenAI([
-        {
-          role: 'system',
-          content: 'You are a friendly English conversation tutor helping a Japanese speaker practice English. Respond naturally and conversationally. Keep your response encouraging, helpful, and at an appropriate level. Respond in English only.'
-        },
-        {
-          role: 'user',
-          content: userMessage.text
-        }
-      ])
+      const aiResponse = await callChatAPI(userMessage.text)
       
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -613,7 +603,7 @@ function App() {
                               : 'bg-card border border-border rounded-bl-md'
                           }`}>
                             <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm leading-relaxed">{message.text}</p>
+                              <p className="text-sm leading-relaxed whitespace-pre-line">{message.text}</p>
                               {!message.isUser && (
                                 <Button
                                   size="sm"
