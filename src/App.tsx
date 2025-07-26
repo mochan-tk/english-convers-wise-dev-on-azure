@@ -14,6 +14,7 @@ interface Message {
   text: string
   isUser: boolean
   timestamp: number
+  translation?: string
 }
 
 interface Explanation {
@@ -66,9 +67,6 @@ function App() {
           event.timestamp = new Date().toLocaleTimeString()
         }
         setEvents((prev) => [event, ...prev])
-        
-        // Debug: Log realtime events
-        console.log('Realtime event:', event.type, event)
 
         // Handle different types of realtime events
         if (event.type === 'response.audio_transcript.done') {
@@ -83,8 +81,9 @@ function App() {
             }
             setMessages(prev => [...prev, aiMessage])
             
-            // Generate explanation for realtime response
+            // Generate explanation and translation for realtime response
             generateExplanationForMessage(transcript, 'リアルタイム音声会話')
+            generateTranslationForMessage(aiMessage)
           }
         } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
           // User's audio input transcript
@@ -116,8 +115,9 @@ function App() {
                 }
                 setMessages(prev => [...prev, aiMessage])
                 
-                // Generate explanation for realtime response
+                // Generate explanation and translation for realtime response
                 generateExplanationForMessage(textContent, 'リアルタイムテキスト会話')
+                generateTranslationForMessage(aiMessage)
               }
             }
           })
@@ -244,6 +244,25 @@ function App() {
 
     if (!response.ok) {
       throw new Error('Explanation API call failed')
+    }
+
+    const data = await response.json()
+    return data.content
+  }
+
+  const callTranslateAPI = async (text: string) => {
+    const response = await fetch('/api/translate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Translation API call failed')
     }
 
     const data = await response.json()
@@ -402,6 +421,25 @@ function App() {
     }
   }
 
+  // Generate translation for a message
+  const generateTranslationForMessage = async (aiMessage: Message) => {
+    if (!(import.meta.env.VITE_TRANSLATION_ENABLED === 'on')) return
+
+    try {
+      const translation = await callTranslateAPI(aiMessage.text)
+      
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === aiMessage.id 
+            ? { ...msg, translation }
+            : msg
+        )
+      )
+    } catch (e) {
+      console.error('Failed to translate message:', e)
+    }
+  }
+
   const sendMessage = async () => {
     if (!currentInput.trim() || isLoading) return
 
@@ -428,7 +466,7 @@ function App() {
 
       setMessages(prev => [...prev, aiMessage])
 
-      // Generate Japanese explanation using new API
+      // Generate Japanese explanation and translation using new API
       try {
         const explanationResponse = await callExplanationAPI(userMessage.text, aiResponse)
         const explanation = JSON.parse(explanationResponse)
@@ -437,6 +475,9 @@ function App() {
           ...explanation
         }
         setExplanations(prev => [newExplanation, ...prev])
+
+        // Generate translation using new function
+        generateTranslationForMessage(aiMessage)
       } catch (e) {
         console.error('Failed to parse explanation:', e)
       }
@@ -592,38 +633,58 @@ function App() {
                 ) : (
                   <div className="space-y-4">
                     {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} mb-4`}
-                      >
-                        <div className={`max-w-[85%] sm:max-w-[80%] relative ${message.isUser ? 'ml-auto' : 'mr-auto'}`}>
-                          <div className={`relative p-3 rounded-2xl ${
-                            message.isUser 
-                              ? 'bg-primary text-primary-foreground rounded-br-md' 
-                              : 'bg-card border border-border rounded-bl-md'
-                          }`}>
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm leading-relaxed whitespace-pre-line">{message.text}</p>
-                              {!message.isUser && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="shrink-0 h-6 w-6 p-0 hover:bg-muted"
-                                  onClick={() => speakText(message.text)}
-                                >
-                                  <SpeakerHigh size={14} />
-                                </Button>
-                              )}
+                      <div key={message.id} className="space-y-2">
+                        {/* Main message */}
+                        <div
+                          className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} mb-2`}
+                        >
+                          <div className={`max-w-[85%] sm:max-w-[80%] relative ${message.isUser ? 'ml-auto' : 'mr-auto'}`}>
+                            <div className={`relative p-3 rounded-2xl ${
+                              message.isUser 
+                                ? 'bg-primary text-primary-foreground rounded-br-md' 
+                                : 'bg-card border border-border rounded-bl-md'
+                            }`}>
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-sm leading-relaxed whitespace-pre-line">{message.text}</p>
+                                {!message.isUser && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="shrink-0 h-6 w-6 p-0 hover:bg-muted"
+                                    onClick={() => speakText(message.text)}
+                                  >
+                                    <SpeakerHigh size={14} />
+                                  </Button>
+                                )}
+                              </div>
+                              
+                              {/* Speech bubble tail */}
+                              <div className={`absolute bottom-0 w-3 h-3 ${
+                                message.isUser
+                                  ? 'right-0 bg-primary transform translate-x-1 translate-y-1 rounded-bl-full'
+                                  : 'left-0 bg-card border-l border-b border-border transform -translate-x-1 translate-y-1 rounded-br-full'
+                              }`} />
                             </div>
-                            
-                            {/* Speech bubble tail */}
-                            <div className={`absolute bottom-0 w-3 h-3 ${
-                              message.isUser
-                                ? 'right-0 bg-primary transform translate-x-1 translate-y-1 rounded-bl-full'
-                                : 'left-0 bg-card border-l border-b border-border transform -translate-x-1 translate-y-1 rounded-br-full'
-                            }`} />
                           </div>
                         </div>
+
+                        {/* Translation message */}
+                        {!message.isUser && message.translation && (
+                          <div className="flex justify-start">
+                            <div className="max-w-[85%] sm:max-w-[80%] mr-auto">
+                              <div className="relative p-3 rounded-2xl bg-blue-50 border border-blue-200 rounded-bl-md">
+                                <div className="flex items-start gap-2">
+                                  <p className="text-sm leading-relaxed text-blue-800">
+                                    {message.translation}
+                                  </p>
+                                </div>
+                                
+                                {/* Speech bubble tail */}
+                                <div className="absolute bottom-0 left-0 w-3 h-3 bg-blue-50 border-l border-b border-blue-200 transform -translate-x-1 translate-y-1 rounded-br-full" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                     {isLoading && (

@@ -32,6 +32,13 @@ const explanationDeploymentName = process.env.AZURE_OPENAI_EXPLANATION_DEPLOYMEN
 const explanationApiVersion = process.env.AZURE_OPENAI_EXPLANATION_API_VERSION;
 const explanationSystemPrompt = process.env.AZURE_OPENAI_EXPLANATION_SYSTEM_PROMPT
 
+// Translation API用の環境変数
+const translationApiKey = process.env.AZURE_OPENAI_TRANSLATION_API_KEY;
+const translationEndpoint = process.env.AZURE_OPENAI_TRANSLATION_ENDPOINT;
+const translationDeploymentName = process.env.AZURE_OPENAI_TRANSLATION_DEPLOYMENT_NAME;
+const translationApiVersion = process.env.AZURE_OPENAI_TRANSLATION_API_VERSION;
+const translationSystemPrompt = process.env.AZURE_OPENAI_TRANSLATION_SYSTEM_PROMPT
+
 // Create Vite server in middleware mode
 const vite = await createViteServer({
   server: { middlewareMode: true },
@@ -107,48 +114,55 @@ app.post('/api/chat', async (req, res) => {
       throw new Error(data.error?.message || 'API call failed');
     }
 
-    let return_message = data.choices[0].message.content;
-    
-    if (chatTransOnOff === 'on') {
-      // If translation is enabled, translate the response to Japanese
-      const messages_jp = [
-        {
-          role: 'system',
-          content: chatTransSystemPrompt
-        },
-        {
-          role: 'user',
-          content: data.choices[0].message.content
-        }
-      ];
-
-      const response_jp = await fetch(`${chatEndpoint}/openai/deployments/${chatDeploymentName}/chat/completions?api-version=${chatApiVersion}`, {
-        method: 'POST',
-        headers: {
-          'api-key': chatApiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: messages_jp,
-          temperature: 0.7
-        }),
-      });
-
-      const data_jp = await response_jp.json();
-      
-      if (!response_jp.ok) {
-        throw new Error(data_jp.error?.message || 'Translation API call failed');
-      }
-      
-      return_message += `\n--\n${data_jp.choices[0].message.content}`;
-    }
-    console.log('Final return message:', return_message);
     res.json({
-      content: return_message
+      content: data.choices[0].message.content
     });
   } catch (error) {
     console.error('Chat completion error:', error);
     res.status(500).json({ error: 'Failed to generate response' });
+  }
+});
+
+// API route for translation
+app.post('/api/translate', async (req, res) => {
+  try {
+    const { text } = req.body;
+    
+    const messages = [
+      {
+        role: 'system',
+        content: translationSystemPrompt
+      },
+      {
+        role: 'user',
+        content: text
+      }
+    ];
+    
+    const response = await fetch(`${translationEndpoint}/openai/deployments/${translationDeploymentName}/chat/completions?api-version=${translationApiVersion}`, {
+      method: 'POST',
+      headers: {
+        'api-key': translationApiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages,
+        temperature: 0.3
+      }),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Translation API call failed');
+    }
+    
+    res.json({
+      content: data.choices[0].message.content
+    });
+  } catch (error) {
+    console.error('Translation error:', error);
+    res.status(500).json({ error: 'Failed to translate text' });
   }
 });
 
