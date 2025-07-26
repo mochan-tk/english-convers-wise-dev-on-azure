@@ -269,9 +269,9 @@ function App() {
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
 
-      // Use Azure OpenAI realtime endpoint
-      const baseUrl = 'https://eastus2.realtimeapi-preview.ai.azure.com/v1/realtimertc'
-      const model = 'gpt-4o-realtime-preview'
+      // Use environment variables for realtime endpoint configuration
+      const baseUrl = import.meta.env.VITE_REALTIME_BASE_URL
+      const model = import.meta.env.VITE_REALTIME_MODEL
       const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
         method: 'POST',
         body: offer.sdp,
