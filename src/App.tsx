@@ -231,6 +231,26 @@ function App() {
     return data.content
   }
 
+  const callExplanationAPI = async (userText: string, aiText: string) => {
+    const response = await fetch('/api/explanation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userText,
+        aiText
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Explanation API call failed')
+    }
+
+    const data = await response.json()
+    return data.content
+  }
+
   // Start realtime session
   const startRealtimeSession = async () => {
     if (isActivatingSession) return
@@ -370,23 +390,7 @@ function App() {
   // Generate explanation for a message
   const generateExplanationForMessage = async (aiText: string, userText: string) => {
     try {
-      const explanationResponse = await callOpenAI([
-        {
-          role: 'system',
-          content: `Analyze this English conversation exchange and provide a helpful Japanese explanation.
-          
-Provide a JSON response with:
-- english: the key English phrase or grammar point to focus on
-- japanese: explanation in Japanese of the meaning, usage, or grammar
-- grammar: optional grammar point explanation in Japanese
-
-Focus on helping the Japanese speaker understand nuances, common expressions, or grammar patterns.`
-        },
-        {
-          role: 'user',
-          content: `User said: "${userText}"\nAI responded: "${aiText}"`
-        }
-      ], true)
+      const explanationResponse = await callExplanationAPI(userText, aiText)
       
       const explanation = JSON.parse(explanationResponse)
       const newExplanation: Explanation = {
@@ -434,26 +438,9 @@ Focus on helping the Japanese speaker understand nuances, common expressions, or
 
       setMessages(prev => [...prev, aiMessage])
 
-      // Generate Japanese explanation
-      const explanationResponse = await callOpenAI([
-        {
-          role: 'system',
-          content: `Analyze this English conversation exchange and provide a helpful Japanese explanation.
-          
-Provide a JSON response with:
-- english: the key English phrase or grammar point to focus on
-- japanese: explanation in Japanese of the meaning, usage, or grammar
-- grammar: optional grammar point explanation in Japanese
-
-Focus on helping the Japanese speaker understand nuances, common expressions, or grammar patterns.`
-        },
-        {
-          role: 'user',
-          content: `User said: "${userMessage.text}"\nAI responded: "${aiResponse}"`
-        }
-      ], true)
-      
+      // Generate Japanese explanation using new API
       try {
+        const explanationResponse = await callExplanationAPI(userMessage.text, aiResponse)
         const explanation = JSON.parse(explanationResponse)
         const newExplanation: Explanation = {
           id: Date.now().toString(),

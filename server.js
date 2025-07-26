@@ -22,6 +22,13 @@ const chatEndpoint = process.env.AZURE_OPENAI_CHAT_ENDPOINT;
 const chatDeploymentName = process.env.AZURE_OPENAI_CHAT_DEPLOYMENT_NAME;
 const chatApiVersion = process.env.AZURE_OPENAI_CHAT_API_VERSION;
 
+// Explanation API用の環境変数
+const explanationApiKey = process.env.AZURE_OPENAI_EXPLANATION_API_KEY;
+const explanationEndpoint = process.env.AZURE_OPENAI_EXPLANATION_ENDPOINT;
+const explanationDeploymentName = process.env.AZURE_OPENAI_EXPLANATION_DEPLOYMENT_NAME;
+const explanationApiVersion = process.env.AZURE_OPENAI_EXPLANATION_API_VERSION;
+const explanationSystemPrompt = process.env.AZURE_OPENAI_EXPLANATION_SYSTEM_PROMPT
+
 // Create Vite server in middleware mode
 const vite = await createViteServer({
   server: { middlewareMode: true },
@@ -92,6 +99,50 @@ app.post('/api/chat', async (req, res) => {
   } catch (error) {
     console.error('Chat completion error:', error);
     res.status(500).json({ error: 'Failed to generate response' });
+  }
+});
+
+// API route for generating explanations
+app.post('/api/explanation', async (req, res) => {
+  try {
+    const { userText, aiText } = req.body;
+    console.log('system prompt:', explanationSystemPrompt);
+    const messages = [
+      {
+        role: 'system',
+        content: explanationSystemPrompt
+      },
+      {
+        role: 'user',
+        content: `User said: "${userText}"\nAI responded: "${aiText}"`
+      }
+    ];
+    
+    const response = await fetch(`${explanationEndpoint}/openai/deployments/${explanationDeploymentName}/chat/completions?api-version=${explanationApiVersion}`, {
+      method: 'POST',
+      headers: {
+        'api-key': explanationApiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages,
+        temperature: 0.7,
+        response_format: { type: 'json_object' }
+      }),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'API call failed');
+    }
+    
+    res.json({
+      content: data.choices[0].message.content
+    });
+  } catch (error) {
+    console.error('Explanation generation error:', error);
+    res.status(500).json({ error: 'Failed to generate explanation' });
   }
 });
 
