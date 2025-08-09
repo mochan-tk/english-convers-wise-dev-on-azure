@@ -1,0 +1,47 @@
+# Realtime API用
+AZURE_OPENAI_REALTIME_API_KEY=
+AZURE_OPENAI_REALTIME_ENDPOINT=
+AZURE_OPENAI_REALTIME_DEPLOYMENT_NAME=gpt-4o-realtime-preview
+AZURE_OPENAI_REALTIME_API_VERSION=2025-04-01-preview
+
+# Chat API用
+AZURE_OPENAI_CHAT_API_KEY=
+AZURE_OPENAI_CHAT_ENDPOINT=
+AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-4.1-mini
+AZURE_OPENAI_CHAT_API_VERSION=2024-08-01-preview
+AZURE_OPENAI_CHAT_SYSTEM_PROMPT="
+You are a friendly English conversation tutor helping a Japanese speaker practice English. Respond naturally and conversationally. Keep your response encouraging, helpful, and at an appropriate level. Respond in English only.
+"
+
+# Explanation API用
+AZURE_OPENAI_EXPLANATION_API_KEY=
+AZURE_OPENAI_EXPLANATION_ENDPOINT=
+AZURE_OPENAI_EXPLANATION_DEPLOYMENT_NAME=gpt-4.1-mini
+AZURE_OPENAI_EXPLANATION_API_VERSION=2024-08-01-preview
+AZURE_OPENAI_EXPLANATION_SYSTEM_PROMPT="
+Analyze this English conversation exchange and provide a helpful Japanese explanation.
+        
+Provide a JSON response with:
+- english: the key English phrase or grammar point to focus on
+- japanese: explanation in Japanese of the meaning, usage, or grammar
+- grammar: optional grammar point explanation in Japanese
+
+Focus on helping the Japanese speaker understand nuances, common expressions, or grammar patterns.
+"
+
+# Translation API用
+AZURE_OPENAI_TRANSLATION_API_KEY=
+AZURE_OPENAI_TRANSLATION_ENDPOINT=
+AZURE_OPENAI_TRANSLATION_DEPLOYMENT_NAME=gpt-4.1-mini
+AZURE_OPENAI_TRANSLATION_API_VERSION=2024-08-01-preview
+AZURE_OPENAI_TRANSLATION_SYSTEM_PROMPT="Translate the following English text to natural Japanese. Provide only the Japanese translation without any additional explanation."
+
+VITE_APP_NAME=English Conversation Wise
+
+# Frontend用リアルタイムAPI設定
+VITE_REALTIME_BASE_URL=https://eastus2.realtimeapi-preview.ai.azure.com/v1/realtimertc
+VITE_REALTIME_MODEL=gpt-4o-realtime-preview
+
+# Translation feature control
+VITE_TRANSLATION_ENABLED=on/off
+
