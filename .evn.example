@@ -45,3 +45,6 @@ VITE_REALTIME_MODEL=gpt-4o-realtime-preview
 # Translation feature control
 VITE_TRANSLATION_ENABLED=on/off
 
+# LIFF Configuration
+VITE_LIFF_ID=
+
